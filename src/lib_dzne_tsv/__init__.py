@@ -12,15 +12,6 @@ def reader(target):
 def writer(target):
     return _csv.writer(target, dialect=Dialect)
 
-def read_DataFrame(file, **kwargs):
-    with DictReader.open_file(file, **kwargs) as dictReader:
-        return _pd.DataFrame(dictReader)
-
-def write_DataFrame(file, dataFrame):
-    with DictWriter.open_file(file) as dictWriter:
-        dictWriter.fieldnames = dataFrame.columns
-        for i, row in dataFrame.iterrows():
-            dictWriter.writerow(row)
 
 
 
@@ -179,15 +170,19 @@ class TSVData(_fd.FileData):
     _ext = '.tsv'
     @classmethod
     def _load(cls, /, file, *, strip=False, **kwargs):
-        ans = _tsv.read_DataFrame(file, **kwargs)
+        with DictReader.open_file(file, **kwargs) as dictReader:
+            ans = _pd.DataFrame(dictReader)
         if strip:
             ans = ans.applymap(lambda x: x.strip())
         return cls(ans)
     def _save(self, /, file, *, strip=False):
-        ans = self._dataFrame
+        df = self.data
         if strip:
-            ans = ans.applymap(lambda x: x.strip())
-        _tsv.write_DataFrame(file, data)
+            df = df.applymap(lambda x: x.strip())
+        with DictWriter.open_file(file) as dictWriter:
+            dictWriter.fieldnames = df.columns
+            for i, row in df.iterrows():
+                dictWriter.writerow(row)
     @staticmethod
     def _default():
         return dict()
